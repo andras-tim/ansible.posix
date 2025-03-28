@@ -283,3 +283,51 @@ class TestSynchronizeAction(unittest.TestCase):
         except BreakPoint:
             pass
         self.assertEqual(spy_remote_expand_user.call_count, 0)
+
+
+class TestSynchronizeActionFormatRsyncRshTarget(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+
+        x = SynchronizeTester()
+        self.SAM = ActionModule(x.task, x.connection, x._play_context,
+                                x.loader, x.templar, x.shared_loader_obj)
+        self.SAM._remote_transport = 'local'
+
+    def test_user_and_host(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="path", user="user")
+        self.assertEqual(target, "user@host:path")
+
+    def test_ipv6_host(self):
+        target = self.SAM._format_rsync_rsh_target(host="2001:db8::1", path="path", user="user")
+        self.assertEqual(target, "[user@2001:db8::1]:path")
+
+    def test_rsync_url(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="rsync://path", user="user")
+        self.assertEqual(target, "rsync://path")
+
+    def test_no_user(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="path", user=None)
+        self.assertEqual(target, "host:path")
+
+    def test_no_user_ipv6(self):
+        target = self.SAM._format_rsync_rsh_target(host="2001:db8::1", path="path", user=None)
+        self.assertEqual(target, "[2001:db8::1]:path")
+
+    def test_docker_transport_with_user(self):
+        self.SAM._remote_transport = 'docker'
+        target = self.SAM._format_rsync_rsh_target(host="host", path="path", user="user")
+        self.assertEqual(target, "host:path")  # docker transport ignores user
+
+    def test_podman_transport_with_user(self):
+        self.SAM._remote_transport = 'podman'
+        target = self.SAM._format_rsync_rsh_target(host="host", path="path", user="user")
+        self.assertEqual(target, "host:path")  # podman transport ignores user
+
+    def test_path_with_colon(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="user@host:/path", user=None)
+        self.assertEqual(target, "user@host:/path")
+
+    def test_path_with_user_and_colon(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="user@host:/path", user="another_user")
+        self.assertEqual(target, "user@host:/path")
