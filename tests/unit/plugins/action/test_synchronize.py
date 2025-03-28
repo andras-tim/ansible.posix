@@ -331,3 +331,27 @@ class TestSynchronizeActionFormatRsyncRshTarget(unittest.TestCase):
     def test_path_with_user_and_colon(self):
         target = self.SAM._format_rsync_rsh_target(host="host", path="user@host:/path", user="another_user")
         self.assertEqual(target, "user@host:/path")
+
+    def test_path_with_colon_and_user(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="user@host:/path:with:colon", user=None)
+        self.assertEqual(target, "user@host:/path:with:colon")
+
+    def test_path_with_user_and_colon_and_at_symbol(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="user@host:/path@with:colon", user="another_user")
+        self.assertEqual(target, "user@host:/path@with:colon")
+
+    def test_path_with_colon_and_no_user(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="/path:with:colon", user=None)
+        self.assertEqual(target, "host:/path:with:colon")
+
+    def test_path_with_at_symbol_and_no_user(self):
+        target = self.SAM._format_rsync_rsh_target(host="host", path="/path@with@symbol", user=None)
+        self.assertEqual(target, "host:/path@with@symbol")
+
+    def test_path_with_colon_and_at_symbol_ipv6(self):
+        target = self.SAM._format_rsync_rsh_target(host="2001:db8::1", path="/path@with:colon", user=None)
+        self.assertEqual(target, "[2001:db8::1]:/path@with:colon")
+
+    def test_path_with_user_colon_and_at_symbol_ipv6(self):
+        target = self.SAM._format_rsync_rsh_target(host="2001:db8::1", path="user@host:/path@with:colon", user="another_user")
+        self.assertEqual(target, "user@host:/path@with:colon")
